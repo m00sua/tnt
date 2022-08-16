@@ -21,7 +21,7 @@ public class TntClientsTest {
     private TntClients.TntClient tntClient;
 
 
-    @Ignore
+    @Ignore("for manual testing that remote service is on")
     @Test
     public void manualTest() {
         Map<String, Double> pricing = tntClient.pricing("NL,DE");

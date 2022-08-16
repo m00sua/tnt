@@ -12,12 +12,15 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.logging.log4j.util.Strings.isNotBlank;
+import static org.example.tnt.classes.TntExecutor.MILLISECONDS_IN_SECOND;
 import static org.example.tnt.classes.TntExecutor.paramsToKeys;
 
 
 @Slf4j
 @Service
 public class TntService {
+
+    private static final int MAX_WAIT_ITERATIONS = 10;
 
     private TntClients.TntClient tntClient;
 
@@ -33,9 +36,9 @@ public class TntService {
         Assert.notNull(tntClient, "TNT Client cannot be null");
         this.tntClient = tntClient;
 
-        this.pricingExecutor = new TntExecutor<>(5, resultsArrivedMonitor, tntClient::pricing);
-        this.shipmentsExecutor = new TntExecutor<>(5, resultsArrivedMonitor, tntClient::shipments);
-        this.trackExecutor = new TntExecutor<>(5, resultsArrivedMonitor, tntClient::track);
+        this.pricingExecutor = new TntExecutor<>("Pricing", 5, 5, resultsArrivedMonitor, tntClient::pricing);
+        this.shipmentsExecutor = new TntExecutor<>("Shipments", 5, 5, resultsArrivedMonitor, tntClient::shipments);
+        this.trackExecutor = new TntExecutor<>("Track", 5, 5, resultsArrivedMonitor, tntClient::track);
     }
 
 
@@ -74,12 +77,19 @@ public class TntService {
         Map<String, String> trackResults = trackExecutor.createResultMap(trackKeys);
 
         // check results
+        int waitIterations = MAX_WAIT_ITERATIONS;
         while (hasNoResults(pricingResult, shipmentsResult, trackResults)) {
+            waitIterations--;
+            if (waitIterations <= 0) {
+                log.info("Break due to wait iteration limit reached");
+                break;
+            }
+
             // wait for monitor
             synchronized (resultsArrivedMonitor) {
                 try {
                     log.info("Waiting for result arrived...");
-                    resultsArrivedMonitor.wait();
+                    resultsArrivedMonitor.wait(MILLISECONDS_IN_SECOND);
                 } catch (InterruptedException e) {
                     log.error("Waiting was interrupted");
                 }
@@ -94,7 +104,9 @@ public class TntService {
             }
         } // of while
 
-        return new AggregationResponse(pricingResult, null, null);
+        log.info("Sending the results to client");
+
+        return new AggregationResponse(pricingResult, trackResults, shipmentsResult);
     }
 
 
