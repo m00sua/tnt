@@ -17,8 +17,13 @@ import static org.apache.logging.log4j.util.Strings.isNotBlank;
 @Service
 public class TntService {
 
-    @Autowired
     private TntClients.TntClient tntClient;
+
+
+    public TntService(@Autowired TntClients.TntClient tntClient) {
+        Assert.notNull(tntClient, "TNT Client cannot be null");
+        this.tntClient = tntClient;
+    }
 
 
     public AggregationResponse aggregate(String pricingParams, String shipmentsParams, String trackParams) {
