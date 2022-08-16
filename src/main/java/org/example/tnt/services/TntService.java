@@ -3,6 +3,7 @@ package org.example.tnt.services;
 import lombok.extern.slf4j.Slf4j;
 import org.example.tnt.classes.AggregationResponse;
 import org.example.tnt.clients.TntClients;
+import org.example.tnt.clients.Wrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -34,36 +35,73 @@ public class TntService {
 
         Assert.isTrue(hasPricing || hasShipments || hasTrack, "No pricing, shipments or track provided");
 
-        Map<String, List<String>> shipments = null;
+
+        Wrapper<Map<String, List<String>>> wrapperShipments = new Wrapper<>();
+        Wrapper<Map<String, Double>> wrapperPricing = new Wrapper<>();
+        Wrapper<Map<String, String>> wrapperTrack = new Wrapper<>();
+
+        Thread threadShipments = null;
+        Thread threadPricing = null;
+        Thread threadTrack = null;
+
         if (hasShipments) {
-            try {
-                shipments = tntClient.shipments(shipmentsParams);
-            } catch (Exception e) {
-                log.error("Cannot get Shipments due to {} : {}", e.getClass().getSimpleName(), e.getMessage());
-            }
+            threadShipments = runInThread("Shipments", () -> {
+                wrapperShipments.setObject(tntClient.shipments(shipmentsParams));
+            });
         }
 
-
-        Map<String, Double> pricing = null;
         if (hasPricing) {
-            try {
-                pricing = tntClient.pricing(pricingParams);
-            } catch (Exception e) {
-                log.error("Cannot get Pricing due to {} : {}", e.getClass().getSimpleName(), e.getMessage());
-            }
+            threadPricing = runInThread("Pricing", () -> {
+                wrapperPricing.setObject(tntClient.pricing(pricingParams));
+            });
         }
 
-
-        Map<String, String> track = null;
         if (hasTrack) {
-            try {
-                track = tntClient.track(trackParams);
-            } catch (Exception e) {
-                log.error("Cannot get Track due to {} : {}", e.getClass().getSimpleName(), e.getMessage());
-            }
+            threadTrack = runInThread("Truck", () -> {
+                wrapperTrack.setObject(tntClient.track(trackParams));
+            });
         }
 
-        return new AggregationResponse(pricing, track, shipments);
+        waitForThreads(threadPricing, threadShipments, threadTrack);
+        return new AggregationResponse(wrapperPricing.getObject(), wrapperTrack.getObject(), wrapperShipments.getObject());
+    }
+
+
+    private Thread runInThread(String prefix, Runnable run) {
+        Assert.hasText(prefix, "Prefix cannot be blank");
+        Assert.notNull(run, "Runnable cannot be null");
+        
+        Thread thread = new Thread(() -> {
+            try {
+                log.info("Requesting {}...", prefix);
+                run.run();
+                log.info("{} done", prefix);
+            } catch (Exception e) {
+                log.error("Cannot get {} due to {} : {}", prefix, e.getClass().getSimpleName(), e.getMessage());
+            }
+        });
+        thread.setName(prefix);
+        thread.start();
+        return thread;
+    }
+
+
+    private void waitForThreads(Thread... threads) {
+        if (threads == null || threads.length <= 0) {
+            return;
+        }
+
+        for (Thread thread : threads) {
+            if (thread != null) {
+                try {
+                    log.info("Waiting for {}...", thread.getName());
+                    thread.join();
+                    log.info("Waiting for {} is done", thread.getName());
+                } catch (InterruptedException e) {
+                    log.error("Thread interrupted");
+                }
+            }
+        }
     }
 
 }
