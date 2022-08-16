@@ -2,7 +2,6 @@ package org.example.tnt.services;
 
 import org.example.tnt.classes.AggregationResponse;
 import org.example.tnt.clients.TntClients;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,7 +15,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 
@@ -35,7 +33,6 @@ public class TntServiceTest {
     }
 
 
-    @Ignore("due to infinite waiting")
     @Test
     public void aggregateTest() {
         TntService tntService = new TntService(createMock());
@@ -44,15 +41,21 @@ public class TntServiceTest {
 
         Map<String, Double> pricing = res.getPricing();
         assertNotNull(pricing);
-        assertEquals(2, pricing.size());
-        assertEquals(Double.valueOf(85.12639391383956), pricing.get("CN"));
-        assertEquals(Double.valueOf(52.17154406547613), pricing.get("NL"));
+        assertEquals(5, pricing.size());
+        assertEquals(Double.valueOf(85.12639391383956), pricing.get("AA"));
+        assertEquals(Double.valueOf(52.17154406547613), pricing.get("BB"));
+        assertEquals(Double.valueOf(42.0), pricing.get("CC"));
+        assertEquals(Double.valueOf(43.0), pricing.get("DD"));
+        assertEquals(Double.valueOf(44.1), pricing.get("EE"));
 
         Map<String, List<String>> shipments = res.getShipments();
-        assertNull(shipments);
+        assertNotNull(shipments);
+        assertEquals(5, shipments.size());
 
         Map<String, String> tracking = res.getTracking();
-        assertNull(tracking);
+        assertNotNull(tracking);
+        assertEquals(5, tracking.size());
+
     }
 
 

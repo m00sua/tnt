@@ -22,7 +22,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.hys" level="trace" additivity="false">
+    <logger name="org.example" level="trace" additivity="false">
         <appender-ref ref="FILE-ROLLING"/>
         <appender-ref ref="STDOUT"/>
     </logger>
