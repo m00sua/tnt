@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TntExecutor<V> {
 
-    private static final String PARAMS_SEPARATOR = ",";
+    static final String PARAMS_SEPARATOR = ",";
     public static final int MILLISECONDS_IN_SECOND = 1000;
 
     public static String[] paramsToKeys(String params) {

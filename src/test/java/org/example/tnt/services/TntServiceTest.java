@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.example.tnt.TestUtils.expectIllegalArgumentException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -24,12 +25,7 @@ public class TntServiceTest {
 
     @Test
     public void negativeTest() {
-        try {
-            new TntService(null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertEquals("TNT Client cannot be null", e.getMessage());
-        }
+        expectIllegalArgumentException(() -> new TntService(null), "TNT Client cannot be null");
     }
 
 
