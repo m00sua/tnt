@@ -1,13 +1,10 @@
 package org.example.tnt.classes;
 
-import org.example.tnt.TestUtils;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static org.example.tnt.TestUtils.expectIllegalArgumentException;
 import static org.example.tnt.classes.TntExecutor.PARAMS_SEPARATOR;
@@ -15,13 +12,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class TntExecutorTest {
 
+    private static final Object timeoutMonitor = new Object();
+
+
     @Test
-    public void TntExecutorConstructorNegativeTest() {
+    public void tntExecutorConstructorNegativeTest() {
         expectIllegalArgumentException(() -> new TntExecutor<>(null, -1, -1, null, null), "Name cannot be blank");
         expectIllegalArgumentException(() -> new TntExecutor<>("someName", -1, -1, null, null), "Max Size must be positive");
         expectIllegalArgumentException(() -> new TntExecutor<>("someName", 1, 0, null, null), "Timeout must be positive");
@@ -31,7 +30,7 @@ public class TntExecutorTest {
 
 
     @Test
-    public void TntExecutorCatchErrorTest() {
+    public void tntExecutorCatchErrorTest() {
         TntExecutor<String> executor = new TntExecutor<>("test", 3, 10, new Object(),
                 params -> {
                     throw new IllegalStateException("Should be handled");
@@ -45,7 +44,7 @@ public class TntExecutorTest {
 
 
     @Test
-    public void TntExecutorSizeReachedTest() {
+    public void tntExecutorSizeReachedTest() {
         Object monitor = new Object();
 
         AtomicInteger callCounter = new AtomicInteger(0);
@@ -95,7 +94,7 @@ public class TntExecutorTest {
 
 
     @Test
-    public void TntExecutorWrongParamsTest() {
+    public void tntExecutorWrongParamsTest() {
         Object monitor = new Object();
 
         AtomicInteger callCounter = new AtomicInteger(0);
@@ -149,6 +148,56 @@ public class TntExecutorTest {
         assertTrue(resultMap.containsKey("1"));
         assertNull(resultMap.get("0"));
         assertNull(resultMap.get("1"));
+    }
+
+
+
+    @Test
+    public void tntExecutorTimeoutTest() throws InterruptedException {
+        AtomicInteger callCounter = new AtomicInteger(0);
+
+        TntExecutor<String> executor = new TntExecutor<>("test", 3, 2, timeoutMonitor,
+                params -> {
+                    callCounter.incrementAndGet();
+
+                    assertNotNull(params);
+
+                    String[] arr = params.split(PARAMS_SEPARATOR);
+
+                    Map<String, String> res = new HashMap<>();
+                    for (String param : arr) {
+                        assertNotNull(param);
+                        res.put(param, param + "_1");
+                    }
+
+                    return res;
+                });
+
+        Map<String, String> resultMap = executor.createResultMap(new String[]{"0", "1", "2"});
+
+        executor.addItems("0");
+        assertEquals(0, callCounter.get());
+
+        executor.addItems("1");
+        assertEquals(0, callCounter.get());
+
+        synchronized (timeoutMonitor) {
+            long ts = System.currentTimeMillis();
+            timeoutMonitor.wait(3000);
+            ts = System.currentTimeMillis() - ts;
+            assertTrue(ts > 1900);
+        }
+
+        assertEquals(1, callCounter.get());
+
+        executor.grabResults(resultMap);
+        assertEquals(3, resultMap.size());
+        assertTrue(resultMap.containsKey("0"));
+        assertTrue(resultMap.containsKey("1"));
+        assertTrue(resultMap.containsKey("2"));
+        assertEquals("0_1", resultMap.get("0"));
+        assertEquals("1_1", resultMap.get("1"));
+        assertNull(resultMap.get("2"));
     }
 
 }
