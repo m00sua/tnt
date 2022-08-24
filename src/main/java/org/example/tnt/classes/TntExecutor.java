@@ -1,5 +1,6 @@
 package org.example.tnt.classes;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
 
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TntExecutor<V> {
 
-    static final String PARAMS_SEPARATOR = ",";
+    public static final String PARAMS_SEPARATOR = ",";
     public static final int MILLISECONDS_IN_SECOND = 1000;
 
     public static String[] paramsToKeys(String params) {
@@ -30,7 +31,9 @@ public class TntExecutor<V> {
     private int timeoutSeconds;
     private Timer timer;
 
+    @Setter
     private Function<String, Map<String, V>> onRemoteRequest;
+
     private final Object resultsArrivedMonitor;
 
     private List<String> keys = new ArrayList<>();
@@ -56,7 +59,7 @@ public class TntExecutor<V> {
     }
 
 
-    private void addItem(String item) {
+    private synchronized void addItem(String item) {
         stopTimer();
         keys.add(item);
 
@@ -81,7 +84,7 @@ public class TntExecutor<V> {
         }
 
         log.info("[{}] remoteData={}", name, remoteData);
-        
+
         if (remoteData != null && !remoteData.isEmpty()) {
             for (String key : keys) {
                 if (remoteData.containsKey(key)) {
@@ -111,7 +114,7 @@ public class TntExecutor<V> {
     }
 
 
-    public void grabResults(Map<String, V> resultMap) {
+    public synchronized void grabResults(Map<String, V> resultMap) {
         int countGrabbed = 0;
         Iterator<Bi<String, V>> iterator = results.iterator();
         while (iterator.hasNext()) {
