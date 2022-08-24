@@ -1,5 +1,6 @@
 package org.example.tnt.services;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.tnt.classes.AggregationResponse;
 import org.example.tnt.classes.TntExecutor;
@@ -27,8 +28,13 @@ public class TntService {
     private static final Object resultsArrivedMonitor = new Object();
     private static final Object resultGrabbedMonitor = new Object();
 
+    @Getter
     private TntExecutor<Double> pricingExecutor;
+
+    @Getter
     private TntExecutor<List<String>> shipmentsExecutor;
+
+    @Getter
     private TntExecutor<String> trackExecutor;
 
 

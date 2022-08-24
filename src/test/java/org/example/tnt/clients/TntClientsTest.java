@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 
+@Ignore("for manual testing that remote service is on")
 @Slf4j
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -21,7 +22,6 @@ public class TntClientsTest {
     private TntClients.TntClient tntClient;
 
 
-    @Ignore("for manual testing that remote service is on")
     @Test
     public void manualTest() {
         Map<String, Double> pricing = tntClient.pricing("NL,DE");
